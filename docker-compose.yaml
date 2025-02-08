@@ -10,6 +10,17 @@ services:
     networks:
       - static-network
 
+  fruits:
+    image: fruits:0.1.0-SNAPSHOT
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+    restart: on-failure
+    ports:
+      - "8081:8080"
+    networks:
+      - static-network
+
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib
     command: [--config=/etc/otel-collector-config.yaml]
