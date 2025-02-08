@@ -17,32 +17,16 @@ import Http4sServerTracingMiddleware.*
 
 object Server extends IOApp {
   private def app[F[_]: {Async, LiftIO}]: Resource[F, Server] =
-    // noinspection ScalaUnusedSymbol
-    given LoggerFactory[F] = Slf4jFactory.create[F]
     for {
-      otel <- OtelJava.autoConfigured[F]()
-      serviceName = "otel4s-grafana-example"
-      given Meter[F] <- Resource.eval(otel.meterProvider.get(serviceName))
-      given Tracer[F] <- Resource.eval(otel.tracerProvider.get(serviceName))
       httpClient: Client[F] <- EmberClientBuilder.default[F].build
       exampleService: FruitServiceClient[F] <- Resource.eval(
         FruitServiceClient[F](httpClient)
       )
       singleFruitPicker = new SingleFruitPicker(exampleService)
       tapir = FruitBagEndpoint.serverEndPoint[F](singleFruitPicker)
-      route: HttpRoutes[F] = tapir2Route(List(tapir))
-      server <- EmberServerBuilder
-        .default[F]
-        .withHost(ipv4"0.0.0.0")
-        .withPort(port"8080")
-        .withHttpApp(route.orNotFound.traced)
-        .build
+      serviceName = "otel4s-grafana-example-fruit-bag"
+      server = ServerMaker.app(serviceName, tapir)
     } yield server
-
-  private def tapir2Route[F[_]: Async](
-      serverEndpoints: List[ServerEndpoint[Any, F]]
-  ): HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(serverEndpoints)
 
   override def run(args: List[String]): IO[ExitCode] =
     app[IO].useForever.as(ExitCode.Success)

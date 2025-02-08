@@ -13,7 +13,8 @@ object Http4sServerTracingMiddleware:
 
   extension [F[_]: {MonadThrow, Tracer}](service: HttpApp[F]) {
 
-    /** Use this extension to activate distributed tracing on your Http4s endpoints evaluation.
+    /** Use this extension to activate distributed tracing on your Http4s endpoints
+      * evaluation.
       * @return
       *   returns a [[Kleisli]] representing the work by the Http4s on a [[Request]] that
       *   would return a [[Response]] but now the computation is traced

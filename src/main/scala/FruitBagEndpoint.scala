@@ -32,7 +32,7 @@ object FruitBagEndpoint:
     fruitBagEndpoint.serverLogicSuccess[F] { (count: Int) =>
       val fruitPicks: Seq[F[Either[Unit, Fruit]]] = (1 to count).map { _ =>
         singleFruitPicker.pickSingleFruit()
-      } // ).sequence
+      }
       val goodFruits: F[Seq[Either[Unit, Fruit]]] = fruitPicks.sequence
       goodFruits.map { s => s.collect { case Right(fruit) => fruit } } map (FruitBag(_))
     }

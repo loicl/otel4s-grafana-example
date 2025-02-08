@@ -18,7 +18,8 @@ object FruitService {
       maxLatency: Int,
       bananaPercentage: Int
   ): F[FruitService[F]] = {
-    CounterFactory.make("Fruits.fruit.count", "Number of fruits returned by the API.")
+    CounterFactory
+      .make("Fruits.fruit.count", "Number of fruits returned by the API.")
       .map { remoteApiFruitCount =>
         new FruitService[F] {
           private val spanBuilder = Tracer[F].spanBuilder("fruits.bbc.co.uk/fruit").build

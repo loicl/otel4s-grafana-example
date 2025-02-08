@@ -16,31 +16,16 @@ import sttp.tapir.server.http4s.Http4sServerInterpreter
 import Http4sServerTracingMiddleware.*
 
 object FruitsServer extends IOApp {
-  private def app[F[_]: {Async, LiftIO}]: Resource[F, Server] =
-    // noinspection ScalaUnusedSymbol
-    given LoggerFactory[F] = Slf4jFactory.create[F]
+  private def app[F[_]: {Async, LiftIO, Tracer, Meter}]: Resource[F, Server] =
     for {
-      given Random[F] <- Resource.eval(Random.scalaUtilRandom[F])
-      otel <- OtelJava.autoConfigured[F]()
-      serviceName = "otel4s-grafana-example"
-      given Meter[F] <- Resource.eval(otel.meterProvider.get(serviceName))
-      given Tracer[F] <- Resource.eval(otel.tracerProvider.get(serviceName))
       exampleService <- Resource.eval(FruitService[F](50, 500, 20))
       tapir = FruitsRoute.make[F](exampleService)
-      route = tapir2Route(List(tapir))
-      server <- EmberServerBuilder
-        .default[F]
-        .withHost(ipv4"0.0.0.0")
-        .withPort(port"8080")
-        .withHttpApp(route.orNotFound.traced)
-        .build
+      serviceName = "otel4s-grafana-example-fruits"
+      server = ServerMaker.app(serviceName, tapir)
     } yield server
 
-  private def tapir2Route[F[_]: Async](
-      serverEndpoints: List[ServerEndpoint[Fs2Streams[F], F]]
-  ): HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(serverEndpoints)
-
   override def run(args: List[String]): IO[ExitCode] =
+    given Meter[F] <- Resource.eval(otel.meterProvider.get(serviceName))
+    given Tracer[F] <- Resource.eval(otel.tracerProvider.get(serviceName))
     app[IO].useForever.as(ExitCode.Success)
 }
